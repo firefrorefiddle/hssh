@@ -16,12 +16,14 @@ type Parser s m = ParsecT s (ParseState s m) m Exp
 data ParseState s m = ParseState {
   psSpecialChars :: [Char],
   psIgnoreSpaces :: [Bool],
-  psSpecialExps  :: [Parser s m]
+  psSpecialExps  :: [(Char, Parser s m)]
   }
           
 excludeChar c = modifyState $ \s -> s {psSpecialChars = c:psSpecialChars s}
 includeChar c = modifyState $ \s -> s {psSpecialChars = remove c $ psSpecialChars s}
   where remove c = filter (not . (== c))
+
+isExcluded s c = c `elem` psSpecialChars s
 
 ignoreSpaces b = modifyState $ \s -> s {psIgnoreSpaces = b:psIgnoreSpaces s}
 unIgnoreSpaces = modifyState $ \s -> s {psIgnoreSpaces = ignore' s}
@@ -64,7 +66,7 @@ dollarExp   = DollarExp  <$> (char '$' >> exp)
 backTickExp = ignoreSpacesIn True $ BackTickExp <$> enclosedExp '`' '`'
 specialExp  = do
     s <- getState
-    choice (psSpecialExps s)
+    choice (map snd . filter (not . isExcluded s . fst) $ psSpecialExps s)
 
 word = T.pack <$> many1 insideChar
 exp = simplify . ConcatExp <$> many1 (specialExp <|> StrExp <$> word)
@@ -84,4 +86,7 @@ simplify e = e
 parse p = runParser p initState
   where initState = ParseState {psSpecialChars = specialChars,
                                 psIgnoreSpaces = [],
-                                psSpecialExps  = [quoteExp, parenExp, dollarExp, backTickExp]}
+                                psSpecialExps  = [('\"', quoteExp),
+                                                  ('(', parenExp),
+                                                  ('$', dollarExp),
+                                                  ('`', backTickExp)]}
