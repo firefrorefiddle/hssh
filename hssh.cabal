@@ -16,21 +16,25 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 executable hssh
-  hs-source-dirs:      src
+  hs-source-dirs:      src, ParserSpec
   main-is:             Main.hs
   other-modules:       Command,
                        InternalCommands,
                        Run,
-                       ShellParser,
                        EchoArgs,
                        Shell,
-                       Types
+                       Types,
+                       Lexer,
+                       Parser
   -- other-extensions:    
   build-depends:       base >=4.7 && <4.8,
                        unix,
                        text,
                        parsec,
                        transformers,
-                       bytestring
+                       bytestring,
+                       array
   -- hs-source-dirs:      
   default-language:    Haskell2010
+
+  build-tools:         alex, happy

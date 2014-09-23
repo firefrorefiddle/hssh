@@ -14,9 +14,9 @@ import System.Posix.User
 import System.IO.Error
 
 import Shell
-import ShellParser
 import Command
 import Types
+import Parser
 
 prompt :: Shell ByteString
 prompt = do
@@ -30,7 +30,7 @@ prompt = do
                            else cwd
 
 maybeGetLine = do
- catchIOError (Just <$> getLine) $ \err ->
+ catchIOError (Just <$> B.getLine) $ \err ->
     if isEOFError err
     then return Nothing
     else print err >> return Nothing
@@ -39,12 +39,16 @@ readAndProcessCommand = do
   l <- liftIO maybeGetLine
   case l of
     Nothing -> return False
-    Just [] -> return True
-    Just l' -> do
-      case parse command "stdin" l' of
-        Left err -> liftIO $ print err
-        Right c -> run c >> return ()
-      return True
+    Just l' -> 
+        if B.empty == l'
+        then return True
+        else do
+          let c = parseBS (B.append l' "\n")
+          run c
+{-          case parse command "stdin" l' of
+            Left err -> liftIO $ print err
+            Right c -> run c >> return () -}
+          return True
 
 mainLoop :: Shell ()
 mainLoop = do
