@@ -1,9 +1,6 @@
 {-# LANGUAGE
-    RankNTypes,
-    TypeSynonymInstances,
     FlexibleInstances,
-    MultiParamTypeClasses,
-    FunctionalDependencies #-}
+    OverloadedStrings #-}
 module Command where
 
 import System.Posix.Types
@@ -23,16 +20,11 @@ import Control.Monad.IO.Class
 import Types
 import Run
 import InternalCommands
+import ShellParser
 
 class Runnable r where
   run :: r -> Shell SuccessState
   
-data Command = Command Exp [Exp]
-             deriving (Read, Show, Eq)
-
-data ExtCommand = ExtCommand ByteString [ByteString]
-             deriving (Read, Show, Eq)
-
 instance Runnable ExtCommand where
   run (ExtCommand cmd args) = do
     pid <- liftIO $ executeInFork cmd True args Nothing Nothing Nothing
@@ -56,13 +48,20 @@ commandToArgv :: Command -> Shell (ByteString, [ByteString])
 commandToArgv (Command prog args) = (,) <$> expToArgv prog <*> mapM expToArgv args
 
 expToArgv e = case e of
-  StrExp t     -> return $ T.encodeUtf8 t
-  ConcatExp es -> B.concat <$> mapM expToArgv es
-  QuoteExp e   -> expToArgv e
-  ParenExp e   -> expToArgv e -- unimplemented
-  BraceExp e   -> expToArgv e -- unimplemented
-  BracketExp e -> expToArgv e -- unimplemented
-  DollarExp e  -> expToArgv e -- unimplemented
+  StrExp t      -> return $ T.encodeUtf8 t
+  ConcatExp es  -> B.concat <$> mapM expToArgv es
+  QuoteExp e    -> expToArgv e
+  BackTickExp e -> do cmd <- expToArgv e
+                      case parse command (B.unpack cmd) cmd of
+                        Left err -> liftIO $ print err >> return ""
+                        Right c -> do
+                          (cmd', args) <- commandToArgv c
+                          (_, out) <- liftIO $ executeInForkAndRead cmd' True args Nothing
+                          return out
+  ParenExp e    -> expToArgv e -- unimplemented
+  BraceExp e    -> expToArgv e -- unimplemented
+  BracketExp e  -> expToArgv e -- unimplemented
+  DollarExp e   -> expToArgv e -- unimplemented
 
 
   

@@ -57,12 +57,13 @@ insideChar = getState >>= \s ->
   in satisfy (\c -> spaceCheck c && specialCharCheck c) 
 
 enclosedExp start end = enclosed start end exp
-quoteExp   = ignoreSpacesIn True $ QuoteExp   <$> enclosedExp '\"' '\"'
-bracketExp = BracketExp <$> enclosedExp '[' ']'
-parenExp   = ParenExp   <$> enclosedExp '(' ')'
-braceExp   = BraceExp   <$> enclosedExp '{' '}'
-dollarExp  = DollarExp  <$> (char '$' >> exp)
-specialExp = do
+quoteExp    = ignoreSpacesIn True $ QuoteExp   <$> enclosedExp '\"' '\"'
+bracketExp  = BracketExp <$> enclosedExp '[' ']'
+parenExp    = ParenExp   <$> enclosedExp '(' ')'
+braceExp    = BraceExp   <$> enclosedExp '{' '}'
+dollarExp   = DollarExp  <$> (char '$' >> exp)
+backTickExp = ignoreSpacesIn True $ BackTickExp <$> enclosedExp '`' '`'
+specialExp  = do
     s <- getState
     choice (psSpecialExps s)
 
@@ -84,4 +85,4 @@ simplify e = e
 parse p = runParser p initState
   where initState = ParseState {psSpecialChars = specialChars,
                                 psIgnoreSpaces = [],
-                                psSpecialExps  = [quoteExp, parenExp, dollarExp]}
+                                psSpecialExps  = [quoteExp, parenExp, dollarExp, backTickExp]}

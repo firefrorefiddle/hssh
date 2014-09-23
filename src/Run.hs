@@ -32,6 +32,19 @@ executeInFork file searchPath args env stdin stdout = do
                                    closeFd readfd      
     executeFile file searchPath args env
 
+executeInForkAndRead :: 
+  RawFilePath -> Bool -> [ByteString] ->
+  Maybe [(ByteString, ByteString)] ->
+  IO (ProcessStatus, ByteString)
+executeInForkAndRead file searchPath args env = do
+  p@(pin, cout) <- createPipe
+  pid <- executeInFork file searchPath args env Nothing (Just p)
+  closeFd cout
+  hin  <- fdToHandle pin
+  res <- B.hGetContents hin
+  Just stat <- getProcessStatus True True pid
+  return (stat, res)
+
 executeForkWithInputOutput ::
   RawFilePath -> Bool -> [ByteString] ->
   Maybe [(ByteString, ByteString)] ->

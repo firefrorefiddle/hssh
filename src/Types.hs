@@ -6,6 +6,13 @@ import System.Exit
 import Control.Monad.IO.Class
 import Control.Applicative
 import System.Posix.Process.ByteString
+import Data.ByteString.Char8 (ByteString)
+
+data Command = Command Exp [Exp]
+             deriving (Read, Show, Eq)
+
+data ExtCommand = ExtCommand ByteString [ByteString]
+             deriving (Read, Show, Eq)
 
 data Exp = StrExp Text
          | ConcatExp [Exp]
@@ -13,6 +20,7 @@ data Exp = StrExp Text
          | ParenExp Exp
          | BraceExp Exp
          | BracketExp Exp
+         | BackTickExp Exp
          | DollarExp Exp
          deriving (Read, Show, Eq)
 
