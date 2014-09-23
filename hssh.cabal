@@ -30,7 +30,6 @@ executable hssh
   build-depends:       base >=4.7 && <4.8,
                        unix,
                        text,
-                       parsec,
                        transformers,
                        bytestring,
                        array
