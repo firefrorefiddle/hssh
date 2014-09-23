@@ -1,16 +1,21 @@
-{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE NoMonomorphismRestriction, FlexibleContexts #-}
 
 module ShellParser where
 
 import Text.Parsec hiding (parse)
+import Text.Parsec.Error
 import qualified Data.Text as T
 import Data.Text (Text)
 import Control.Applicative ((<$>))
 import Prelude hiding (exp)
 import Data.Char (isSpace)
+import Data.ByteString.Char8 (ByteString)
+import qualified Data.ByteString.Char8 as B
+import Data.Functor.Identity
 
-import Command
 import Types
+
+import Debug.Trace
 
 type Parser s m = ParsecT s (ParseState s m) m Exp
 
@@ -44,9 +49,15 @@ enclosed start end p = do
   char start
   excludeChar end
   r <- p
-  char end
+  char end  
   includeChar end
   return r
+
+testParser :: Char -> ParsecT ByteString (ParseState ByteString Identity) Identity Exp
+testParser c = enclosed c c exp
+
+encTry :: Char -> Either ParseError Exp
+encTry c = parse (testParser c) "" (B.pack [c, 'a', c])
 
 specialChars = "$\""
 insideChar = getState >>= \s ->
@@ -57,12 +68,13 @@ insideChar = getState >>= \s ->
   in satisfy (\c -> spaceCheck c && specialCharCheck c) 
 
 enclosedExp start end = enclosed start end exp
-quoteExp   = ignoreSpacesIn True $ QuoteExp   <$> enclosedExp '\"' '\"'
-bracketExp = BracketExp <$> enclosedExp '[' ']'
-parenExp   = ParenExp   <$> enclosedExp '(' ')'
-braceExp   = BraceExp   <$> enclosedExp '{' '}'
-dollarExp  = DollarExp  <$> (char '$' >> exp)
-specialExp = do
+quoteExp    = ignoreSpacesIn True $ QuoteExp   <$> enclosedExp '\"' '\"'
+bracketExp  = BracketExp <$> enclosedExp '[' ']'
+parenExp    = ParenExp   <$> enclosedExp '(' ')'
+braceExp    = BraceExp   <$> enclosedExp '{' '}'
+dollarExp   = DollarExp  <$> (char '$' >> exp)
+backTickExp = ignoreSpacesIn True $ BackTickExp <$> enclosedExp '`' '`'
+specialExp  = do
     s <- getState
     choice (psSpecialExps s)
 
@@ -84,4 +96,4 @@ simplify e = e
 parse p = runParser p initState
   where initState = ParseState {psSpecialChars = specialChars,
                                 psIgnoreSpaces = [],
-                                psSpecialExps  = [quoteExp, parenExp, dollarExp]}
+                                psSpecialExps  = [quoteExp, parenExp, dollarExp, backTickExp]}
