@@ -25,8 +25,3 @@ data ShellState = ShSt
                   { shStCwd :: RawFilePath
                   } deriving (Read, Show, Eq)
   
-cat :: ByteString -> IO (ProcessStatus, ByteString)
-cat = executeForkWithInputOutput "cat" True [] Nothing
-
-mkUpper :: ByteString -> IO (ProcessStatus, ByteString)
-mkUpper = executeForkWithInputOutput "tr" True ["[a-z]", "[A-Z]"] Nothing
