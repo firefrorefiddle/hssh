@@ -9,7 +9,6 @@ import Control.Applicative ((<$>))
 import Prelude hiding (exp)
 import Data.Char (isSpace)
 
-import Command
 import Types
 
 type Parser s m = ParsecT s (ParseState s m) m Exp
