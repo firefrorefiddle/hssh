@@ -1,3 +1,6 @@
 *~
 dist
 .cabal-sandbox
+cabal.sandbox.config
+ParserSpec/Lexer.hs
+ParserSpec/Parser.hs
